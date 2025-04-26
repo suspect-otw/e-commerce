@@ -52,10 +52,43 @@ TO authenticated
 USING (true);
 ```
 
-**Notes on the image field**:
+# Storage Bucket for Product Images
+
+```sql
+-- Setup storage bucket for product images
+INSERT INTO storage.buckets (id, name, owner, created_at, updated_at, public)
+VALUES 
+('product-images', 'Product Images', NULL, NOW(), NOW(), true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Set RLS policies for the bucket
+CREATE POLICY "Allow public read access for product-images"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'product-images');
+
+CREATE POLICY "Allow authenticated users to upload to product-images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'product-images');
+
+CREATE POLICY "Allow authenticated users to update their uploads in product-images"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'product-images');
+
+CREATE POLICY "Allow authenticated users to delete their uploads in product-images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'product-images');
+```
+
+**Notes on the image handling**:
 - `image_url` is defined as TEXT ARRAY to store multiple image URLs for each product
-- To handle images:
-  1. Create a storage bucket in Supabase dashboard named "product-images"
-  2. Upload images to this bucket
-  3. Store the resulting URLs in the image_url array field
-  4. Set appropriate storage bucket policies to restrict uploads to authenticated users
+- Images are uploaded to a Supabase Storage bucket named "product-images"
+- The workflow is:
+  1. User selects an image file in the admin interface
+  2. The file is uploaded to the "product-images" bucket
+  3. The public URL is stored in the product's image_url array
+  4. Multiple images can be uploaded and stored for each product
+  5. The first image is used as the main/thumbnail image
+  6. All operations are protected by Row Level Security policies

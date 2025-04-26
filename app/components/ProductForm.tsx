@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Product } from '../actions/products';
+import ImageUpload from './ImageUpload';
 
 interface ProductFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -13,25 +14,17 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
   const [name, setName] = useState(initialData?.name || '');
   const [size, setSize] = useState(initialData?.size || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
-  const [imageUrls, setImageUrls] = useState<string[]>(initialData?.image_url || ['']);
+  const [imageUrls, setImageUrls] = useState<string[]>(initialData?.image_url || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAddImageField = () => {
-    setImageUrls([...imageUrls, '']);
+  const handleAddImage = (url: string) => {
+    setImageUrls([...imageUrls, url]);
   };
 
-  const handleRemoveImageField = (index: number) => {
-    if (imageUrls.length > 1) {
-      const newUrls = [...imageUrls];
-      newUrls.splice(index, 1);
-      setImageUrls(newUrls);
-    }
-  };
-
-  const handleImageUrlChange = (index: number, value: string) => {
+  const handleRemoveImage = (index: number) => {
     const newUrls = [...imageUrls];
-    newUrls[index] = value;
+    newUrls.splice(index, 1);
     setImageUrls(newUrls);
   };
 
@@ -56,8 +49,8 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
       }
     });
 
-    // Add non-empty image URLs
-    imageUrls.filter(url => url.trim() !== '').forEach(url => {
+    // Add image URLs
+    imageUrls.forEach(url => {
       formData.append('image_url', url);
     });
 
@@ -68,7 +61,7 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
         setName('');
         setSize('');
         setPrice('');
-        setImageUrls(['']);
+        setImageUrls([]);
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -113,22 +106,16 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
         <label htmlFor="size" className="block text-sm font-medium">
           Size
         </label>
-        <select
+        <input
+          type="text"
           id="size"
           name="size"
           value={size}
           onChange={(e) => setSize(e.target.value)}
+          placeholder="Enter size (e.g. 28, 30, S, M, L)"
           className="w-full p-2 border rounded"
           required
-        >
-          <option value="">Select size</option>
-          <option value="XS">XS</option>
-          <option value="S">S</option>
-          <option value="M">M</option>
-          <option value="L">L</option>
-          <option value="XL">XL</option>
-          <option value="XXL">XXL</option>
-        </select>
+        />
       </div>
 
       <div className="space-y-2">
@@ -150,38 +137,42 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
 
       <div className="space-y-2">
         <label className="block text-sm font-medium">
-          Image URLs
+          Product Images
         </label>
-        <div className="space-y-2">
+        
+        <div className="flex flex-wrap gap-4 mb-4">
           {imageUrls.map((url, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                name={`image_url_${index}`}
-                value={url}
-                onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                placeholder="Enter image URL"
-                className="flex-1 p-2 border rounded"
+            <div key={index} className="relative h-32 w-32 border rounded">
+              <img
+                src={url}
+                alt={`Product ${index + 1}`}
+                className="h-full w-full object-cover rounded"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=No+Image';
+                }}
               />
-              {imageUrls.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImageField(index)}
-                  className="p-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
-                >
-                  Remove
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => handleRemoveImage(index)}
+                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                aria-label="Remove image"
+              >
+                ×
+              </button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={handleAddImageField}
-            className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-          >
-            Add Another Image
-          </button>
+          
+          {imageUrls.length === 0 && (
+            <div className="text-sm text-muted-foreground mb-2">
+              No images added yet. Use the uploader below to add images.
+            </div>
+          )}
         </div>
+        
+        <ImageUpload 
+          onImageUpload={handleAddImage}
+          onError={(msg) => setError(msg)}
+        />
       </div>
 
       <button
