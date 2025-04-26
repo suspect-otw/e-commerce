@@ -3,6 +3,18 @@
 import { useState } from 'react';
 import { Product, deleteProduct } from '../actions/products';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface ProductListProps {
   products: Product[];
@@ -12,23 +24,23 @@ interface ProductListProps {
 export default function ProductList({ products, onEdit }: ProductListProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      setIsDeleting(id);
-      try {
-        const result = await deleteProduct(id);
-        if (result.success) {
-          router.refresh();
-        } else {
-          alert(`Error: ${result.error}`);
-        }
-      } catch (error) {
-        console.error('Failed to delete product:', error);
-        alert('Failed to delete product. Please try again.');
-      } finally {
-        setIsDeleting(null);
+    setIsDeleting(id);
+    try {
+      const result = await deleteProduct(id);
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert(`Error: ${result.error}`);
       }
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      alert('Failed to delete product. Please try again.');
+    } finally {
+      setIsDeleting(null);
+      setProductToDelete(null);
     }
   };
 
@@ -89,17 +101,42 @@ export default function ProductList({ products, onEdit }: ProductListProps) {
                 <div className="flex space-x-2">
                   <button
                     onClick={() => onEdit(product)}
-                    className="px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    Edit
+                    <Pencil className="h-4 w-4" />
+                    <span>Edit</span>
                   </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    disabled={isDeleting === product.id}
-                    className="px-3 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 disabled:opacity-50"
-                  >
-                    {isDeleting === product.id ? 'Deleting...' : 'Delete'}
-                  </button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        className="flex items-center gap-1 px-3 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+                        onClick={() => setProductToDelete(product)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Delete</span>
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the 
+                          product "{productToDelete?.name}" and remove the data from the server.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => productToDelete && handleDelete(productToDelete.id)}
+                          disabled={isDeleting !== null}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDeleting === productToDelete?.id ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </td>
             </tr>
