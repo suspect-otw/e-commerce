@@ -5,7 +5,7 @@ CREATE TABLE public.products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     size TEXT NOT NULL,
-    image_url TEXT,
+    image_url TEXT[],
     price SMALLINT NOT NULL CHECK (price >= 1 AND price <= 10000),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -53,9 +53,9 @@ USING (true);
 ```
 
 **Notes on the image field**:
-- `image_url` is defined as TEXT and will store the URL of the image in the Supabase Storage bucket
+- `image_url` is defined as TEXT ARRAY to store multiple image URLs for each product
 - To handle images:
   1. Create a storage bucket in Supabase dashboard named "product-images"
   2. Upload images to this bucket
-  3. Store the resulting path/URL in the image_url field
+  3. Store the resulting URLs in the image_url array field
   4. Set appropriate storage bucket policies to restrict uploads to authenticated users
