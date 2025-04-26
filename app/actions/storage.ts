@@ -1,12 +1,14 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { v4 as uuidv4 } from 'uuid';
 
 interface UploadResult {
   success?: boolean;
   error?: string;
   filePath?: string;
   publicUrl: string;
+  fileName?: string;
 }
 
 export const uploadProductImage = async (formData: FormData): Promise<UploadResult> => {
@@ -24,7 +26,8 @@ export const uploadProductImage = async (formData: FormData): Promise<UploadResu
   
   // Generate a unique file name with the original extension
   const fileExt = file.name.split(".").pop() || "jpg";
-  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+  const uniqueId = uuidv4();
+  const fileName = `${uniqueId}.${fileExt}`;
   const filePath = `${fileName}`;
   
   // Upload the file to the product-images bucket
@@ -51,16 +54,24 @@ export const uploadProductImage = async (formData: FormData): Promise<UploadResu
   return { 
     success: true, 
     filePath, 
-    publicUrl 
+    publicUrl,
+    fileName
   };
 };
 
 export const deleteProductImage = async (filePath: string) => {
   const supabase = await createClient();
   
+  // Extract just the filename if full URL is provided
+  let fileName = filePath;
+  if (filePath.includes('/')) {
+    const parts = filePath.split('/');
+    fileName = parts[parts.length - 1];
+  }
+  
   const { error } = await supabase.storage
     .from("product-images")
-    .remove([filePath]);
+    .remove([fileName]);
   
   if (error) {
     console.error("Error deleting file:", error);

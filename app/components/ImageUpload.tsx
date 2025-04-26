@@ -13,7 +13,7 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
   const [completedFiles, setCompletedFiles] = useState(0);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<{ url: string, name: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,12 +25,10 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
     setCompletedFiles(0);
     
     // Generate previews for all files
-    const newPreviews: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const previewUrl = URL.createObjectURL(file);
-      newPreviews.push(previewUrl);
-    }
+    const newPreviews = Array.from(files).map(file => ({
+      url: URL.createObjectURL(file),
+      name: file.name
+    }));
     setPreviews(newPreviews);
     
     // Process each file
@@ -67,20 +65,21 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
       }
     }
     
-    // Reset states after all uploads
-    setIsUploading(false);
-    setUploadProgress(0);
-    
-    // Clean up preview URLs
+    // Wait a moment before clearing previews to ensure they're all visible to the user
     setTimeout(() => {
-      newPreviews.forEach(URL.revokeObjectURL);
+      // Reset states after all uploads
+      setIsUploading(false);
+      setUploadProgress(0);
+      
+      // Clean up preview URLs
+      newPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
       setPreviews([]);
-    }, 3000); // Keep previews visible for 3 seconds after upload completes
-    
-    // Reset the input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+      
+      // Reset the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 1000);
   };
 
   return (
@@ -125,14 +124,17 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
       {previews.length > 0 && (
         <div className="w-full">
           <p className="text-sm font-medium mb-2">Uploading these images:</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {previews.map((preview, index) => (
-              <div key={index} className="relative h-20 w-20 border rounded">
+              <div key={index} className="relative aspect-square overflow-hidden rounded-md border bg-muted">
                 <img
-                  src={preview}
-                  alt={`Preview ${index + 1}`}
+                  src={preview.url}
+                  alt={`Preview ${preview.name}`}
                   className="h-full w-full object-cover rounded"
                 />
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs py-1 px-2 truncate">
+                  {preview.name}
+                </div>
               </div>
             ))}
           </div>

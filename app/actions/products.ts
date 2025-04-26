@@ -92,6 +92,24 @@ export const updateProduct = async (formData: FormData) => {
     return { error: "ID, name, size and price are required" };
   }
   
+  // Get current product to compare images
+  const { data: currentProduct } = await supabase
+    .from("products")
+    .select("image_url")
+    .eq("id", id)
+    .single();
+  
+  // Find images that were removed
+  const removedImages: string[] = [];
+  if (currentProduct?.image_url) {
+    for (const oldUrl of currentProduct.image_url) {
+      if (!imageUrls.includes(oldUrl)) {
+        removedImages.push(oldUrl);
+      }
+    }
+  }
+  
+  // Update the product
   const { data, error } = await supabase
     .from("products")
     .update({
@@ -106,6 +124,16 @@ export const updateProduct = async (formData: FormData) => {
   if (error) {
     console.error("Error updating product:", error);
     return { error: error.message };
+  }
+  
+  // Delete removed images from storage
+  for (const imageUrl of removedImages) {
+    try {
+      await deleteProductImage(imageUrl);
+    } catch (err) {
+      console.error(`Failed to delete removed image: ${imageUrl}`, err);
+      // Continue even if image deletion fails
+    }
   }
   
   return { success: true, data };
@@ -138,23 +166,29 @@ export const deleteProduct = async (id: string) => {
   }
 
   // Delete associated images from storage if they exist
+  const deletionResults = [];
   if (product?.image_url && product.image_url.length > 0) {
     for (const imageUrl of product.image_url) {
       try {
-        // Extract file path from the URL
-        // Assuming URL format is like: https://[bucket-url]/storage/v1/object/public/product-images/[filename]
-        const urlParts = imageUrl.split('/');
-        const fileName = urlParts[urlParts.length - 1];
-        
-        if (fileName) {
-          await deleteProductImage(fileName);
-        }
+        const result = await deleteProductImage(imageUrl);
+        deletionResults.push({
+          url: imageUrl,
+          success: result.success,
+          error: result.error
+        });
       } catch (err) {
         console.error(`Failed to delete image: ${imageUrl}`, err);
-        // Continue with other images even if one fails
+        deletionResults.push({
+          url: imageUrl,
+          success: false,
+          error: String(err)
+        });
       }
     }
   }
   
-  return { success: true };
+  return { 
+    success: true,
+    deletedImages: deletionResults
+  };
 }; 

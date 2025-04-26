@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Product } from '../actions/products';
 import ImageUpload from './ImageUpload';
+import { deleteProductImage } from '../actions/storage';
 
 interface ProductFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -17,12 +18,35 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
   const [imageUrls, setImageUrls] = useState<string[]>(initialData?.image_url || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+
+  // When editing, ensure we get all the latest images
+  useEffect(() => {
+    if (initialData?.image_url) {
+      setImageUrls(initialData.image_url);
+    }
+  }, [initialData]);
 
   const handleAddImage = (url: string) => {
-    setImageUrls([...imageUrls, url]);
+    setImageUrls(prev => [...prev, url]);
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveImage = async (index: number) => {
+    // For edit mode, also delete from storage
+    if (formType === 'edit' && initialData?.id) {
+      const imageUrl = imageUrls[index];
+      setIsDeleting(index);
+      
+      try {
+        await deleteProductImage(imageUrl);
+      } catch (err) {
+        console.error(`Failed to delete image from storage: ${imageUrl}`, err);
+        setError(`Failed to delete image from storage: ${err}`);
+      } finally {
+        setIsDeleting(null);
+      }
+    }
+    
     const newUrls = [...imageUrls];
     newUrls.splice(index, 1);
     setImageUrls(newUrls);
@@ -160,10 +184,11 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100"
+                      disabled={isDeleting === index}
+                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100 disabled:opacity-50"
                       aria-label="Remove image"
                     >
-                      ×
+                      {isDeleting === index ? '...' : '×'}
                     </button>
                   </div>
                 </div>
