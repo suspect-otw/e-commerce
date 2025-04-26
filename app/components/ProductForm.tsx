@@ -1,89 +1,73 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Product } from '../actions/products';
-import ImageUpload, { ImageUploadRef } from './ImageUpload';
+import ImageUpload from './ImageUpload';
 import { deleteProductImage } from '../actions/storage';
 
 interface ProductFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
   initialData?: Product;
   formType: 'create' | 'edit';
-  onCancel: () => void;
+  onAddTempImage: (url: string) => void;
+  onRemoveTempImage: (url: string) => void;
 }
 
-type UploadedImage = {
-  url: string;
-  filePath: string;
-};
-
-export default function ProductForm({ onSubmit, initialData, formType, onCancel }: ProductFormProps) {
+export default function ProductForm({ 
+  onSubmit, 
+  initialData, 
+  formType,
+  onAddTempImage,
+  onRemoveTempImage
+}: ProductFormProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [size, setSize] = useState(initialData?.size || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>(initialData?.image_url || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const imageUploadRef = useRef<ImageUploadRef>(null);
 
-  // Track if form is submitted or canceled
-  const [isFormCompleted, setIsFormCompleted] = useState(false);
-
-  // Extract URLs from tracked images
-  const imageUrls = uploadedImages.map(img => img.url);
-
-  // When editing, ensure we get all the latest images from the initialData
+  // When editing, ensure we get all the latest images
   useEffect(() => {
     if (initialData?.image_url) {
-      // Convert to our internal format with dummy filePaths (existing images don't need cleanup)
-      const initialImages = initialData.image_url.map(url => ({
-        url,
-        filePath: url.split('/').pop() || '' // Extract just the filename part
-      }));
-      setUploadedImages(initialImages);
+      setImageUrls(initialData.image_url);
     }
   }, [initialData]);
 
-  // Cleanup effect when unmounting if form wasn't completed
-  useEffect(() => {
-    return () => {
-      if (!isFormCompleted && imageUploadRef.current && uploadedImages.length > 0) {
-        // Only perform cleanup for newly uploaded images (not ones from initialData)
-        if (formType === 'create' || uploadedImages.some(img => !initialData?.image_url?.includes(img.url))) {
-          console.log('Form cancelled, cleaning up temporary uploads');
-          imageUploadRef.current.cleanup().catch(err => {
-            console.error('Failed to cleanup temporary uploads:', err);
-          });
-        }
-      }
-    };
-  }, [isFormCompleted, uploadedImages, formType, initialData]);
-
-  const handleAddImage = (url: string, filePath: string) => {
-    setUploadedImages(prev => [...prev, { url, filePath }]);
+  const handleAddImage = (url: string) => {
+    setImageUrls(prev => [...prev, url]);
+    
+    // Track newly uploaded image if it's not already part of the initial data
+    if (!initialData?.image_url?.includes(url)) {
+      onAddTempImage(url);
+    }
   };
 
   const handleRemoveImage = async (index: number) => {
-    const imageToRemove = uploadedImages[index];
+    const imageUrl = imageUrls[index];
     
-    // For edit mode, also delete from storage
-    if (formType === 'edit' && initialData?.id) {
+    // For edit mode, also delete from storage if it was part of the original product
+    if (formType === 'edit' && initialData?.id && initialData?.image_url?.includes(imageUrl)) {
       setIsDeleting(index);
       
       try {
-        await deleteProductImage(imageToRemove.filePath);
+        await deleteProductImage(imageUrl);
       } catch (err) {
-        console.error(`Failed to delete image from storage: ${imageToRemove.url}`, err);
+        console.error(`Failed to delete image from storage: ${imageUrl}`, err);
         setError(`Failed to delete image from storage: ${err}`);
       } finally {
         setIsDeleting(null);
       }
+    } else if (!initialData?.image_url?.includes(imageUrl)) {
+      // If it's a newly uploaded image that wasn't part of the initial data
+      // Track it for removal when canceling the form
+      onRemoveTempImage(imageUrl);
     }
     
-    const newImages = [...uploadedImages];
-    newImages.splice(index, 1);
-    setUploadedImages(newImages);
+    const newUrls = [...imageUrls];
+    newUrls.splice(index, 1);
+    setImageUrls(newUrls);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -114,16 +98,12 @@ export default function ProductForm({ onSubmit, initialData, formType, onCancel 
 
     try {
       await onSubmit(formData);
-      
-      // Mark form as completed so we don't clean up on unmount
-      setIsFormCompleted(true);
-      
       if (formType === 'create') {
         // Reset form for create
         setName('');
         setSize('');
         setPrice('');
-        setUploadedImages([]);
+        setImageUrls([]);
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -133,38 +113,11 @@ export default function ProductForm({ onSubmit, initialData, formType, onCancel 
     }
   };
 
-  const handleCancel = () => {
-    // Mark form as completed to avoid double cleanup
-    setIsFormCompleted(true);
-    
-    // Clean up any temporary uploads
-    if (imageUploadRef.current && uploadedImages.length > 0) {
-      // Only perform cleanup for newly uploaded images (not ones from initialData)
-      if (formType === 'create' || uploadedImages.some(img => !initialData?.image_url?.includes(img.url))) {
-        console.log('Form cancelled, cleaning up temporary uploads');
-        imageUploadRef.current.cleanup().catch(err => {
-          console.error('Failed to cleanup temporary uploads:', err);
-        });
-      }
-    }
-    
-    onCancel();
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-card">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">
-          {formType === 'create' ? 'Add New Product' : 'Edit Product'}
-        </h2>
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="px-3 py-1 bg-muted text-muted-foreground rounded hover:bg-muted/90"
-        >
-          Cancel
-        </button>
-      </div>
+      <h2 className="text-xl font-bold mb-4">
+        {formType === 'create' ? 'Add New Product' : 'Edit Product'}
+      </h2>
       
       {error && (
         <div className="p-3 bg-destructive/20 text-destructive rounded-md">
@@ -229,17 +182,17 @@ export default function ProductForm({ onSubmit, initialData, formType, onCancel 
           Product Images
         </label>
         
-        {uploadedImages.length > 0 && (
+        {imageUrls.length > 0 && (
           <div className="border rounded-md p-3 bg-muted/20">
             <h3 className="text-sm font-medium mb-2">
-              {uploadedImages.length} {uploadedImages.length === 1 ? 'Image' : 'Images'} Attached
+              {imageUrls.length} {imageUrls.length === 1 ? 'Image' : 'Images'} Attached
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {uploadedImages.map((image, index) => (
+              {imageUrls.map((url, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-square relative overflow-hidden rounded-md border bg-muted">
                     <img
-                      src={image.url}
+                      src={url}
                       alt={`Product ${index + 1}`}
                       className="object-cover w-full h-full transition-all hover:scale-105"
                       onError={(e) => {
@@ -263,7 +216,6 @@ export default function ProductForm({ onSubmit, initialData, formType, onCancel 
         )}
         
         <ImageUpload 
-          ref={imageUploadRef}
           onImageUpload={handleAddImage}
           onError={(msg) => setError(msg)}
         />

@@ -6,7 +6,7 @@ Bu proje, bir t-shirt e-ticaret web sitesi için admin paneli içerir. Next.js v
 
 ## Proje Yapısı
 
-- **app/** - Next.js 13+ App Router yapısı
+- **app/** - Next.js 15+ App Router yapısı
   - **app/actions/** - Server-side actions (CRUD operations)
   - **app/components/** - React bileşenleri
   - **app/protected/** - Sadece yetkili kullanıcıların erişebileceği sayfalar

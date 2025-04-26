@@ -5,6 +5,7 @@ import { Product, createProduct, updateProduct } from '../actions/products';
 import ProductForm from './ProductForm';
 import ProductList from './ProductList';
 import { useRouter } from 'next/navigation';
+import { deleteProductImage } from '../actions/storage';
 
 interface ProductManagerProps {
   initialProducts: Product[];
@@ -14,11 +15,13 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [tempUploadedImages, setTempUploadedImages] = useState<string[]>([]);
 
   const handleCreateSubmit = async (formData: FormData) => {
     const result = await createProduct(formData);
     if (result.success) {
       setIsCreating(false);
+      setTempUploadedImages([]);
       router.refresh();
     } else {
       alert(`Error: ${result.error}`);
@@ -29,10 +32,41 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
     const result = await updateProduct(formData);
     if (result.success) {
       setEditingProduct(null);
+      setTempUploadedImages([]);
       router.refresh();
     } else {
       alert(`Error: ${result.error}`);
     }
+  };
+
+  const handleAddTempImage = (url: string) => {
+    setTempUploadedImages(prev => [...prev, url]);
+  };
+
+  const handleRemoveTempImage = (url: string) => {
+    setTempUploadedImages(prev => prev.filter(item => item !== url));
+  };
+
+  const handleCancel = async () => {
+    // Delete any temporary uploaded images
+    if (tempUploadedImages.length > 0) {
+      const deletePromises = tempUploadedImages.map(async (imageUrl) => {
+        try {
+          await deleteProductImage(imageUrl);
+          return { url: imageUrl, success: true };
+        } catch (error) {
+          console.error(`Failed to delete temp image: ${imageUrl}`, error);
+          return { url: imageUrl, success: false, error };
+        }
+      });
+
+      await Promise.all(deletePromises);
+    }
+
+    // Reset the form state
+    setIsCreating(false);
+    setEditingProduct(null);
+    setTempUploadedImages([]);
   };
 
   return (
@@ -56,10 +90,7 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
               {isCreating ? 'Add New Product' : 'Edit Product'}
             </h2>
             <button
-              onClick={() => {
-                setIsCreating(false);
-                setEditingProduct(null);
-              }}
+              onClick={handleCancel}
               className="px-3 py-1 bg-muted text-muted-foreground rounded hover:bg-muted/90"
             >
               Cancel
@@ -70,6 +101,8 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
             <ProductForm
               onSubmit={handleCreateSubmit}
               formType="create"
+              onAddTempImage={handleAddTempImage}
+              onRemoveTempImage={handleRemoveTempImage}
             />
           ) : (
             editingProduct && (
@@ -77,6 +110,8 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
                 onSubmit={handleUpdateSubmit}
                 initialData={editingProduct}
                 formType="edit"
+                onAddTempImage={handleAddTempImage}
+                onRemoveTempImage={handleRemoveTempImage}
               />
             )
           )}
@@ -88,6 +123,7 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
         onEdit={(product) => {
           setIsCreating(false);
           setEditingProduct(product);
+          setTempUploadedImages([]);
         }}
       />
     </div>

@@ -1,40 +1,20 @@
 'use client';
 
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { uploadProductImage, deleteProductImage } from '../actions/storage';
+import { useState, useRef } from 'react';
+import { uploadProductImage } from '../actions/storage';
 
 interface ImageUploadProps {
-  onImageUpload: (url: string, filePath: string) => void;
+  onImageUpload: (url: string) => void;
   onError: (error: string) => void;
 }
 
-export interface ImageUploadRef {
-  cleanup: () => Promise<void>;
-}
-
-const ImageUpload = forwardRef<ImageUploadRef, ImageUploadProps>(({ onImageUpload, onError }, ref) => {
+export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
   const [completedFiles, setCompletedFiles] = useState(0);
   const [previews, setPreviews] = useState<{ url: string, name: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFilePaths, setUploadedFilePaths] = useState<string[]>([]);
-
-  // Expose cleanup method via ref
-  useImperativeHandle(ref, () => ({
-    async cleanup() {
-      console.log('Cleaning up temporary uploads:', uploadedFilePaths);
-      const deletionPromises = uploadedFilePaths.map(filePath => 
-        deleteProductImage(filePath)
-          .catch(err => console.error(`Failed to delete ${filePath}:`, err))
-      );
-      
-      await Promise.all(deletionPromises);
-      setUploadedFilePaths([]);
-      return;
-    }
-  }));
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -67,16 +47,13 @@ const ImageUpload = forwardRef<ImageUploadRef, ImageUploadProps>(({ onImageUploa
           continue;
         }
         
-        if (!result.publicUrl || !result.filePath) {
+        if (!result.publicUrl) {
           onError(`Failed to get public URL for ${file.name}`);
           continue;
         }
         
-        // Track uploaded file path for potential cleanup
-        setUploadedFilePaths(prev => [...prev, result.filePath!]);
-        
-        // Add the uploaded image URL
-        onImageUpload(result.publicUrl, result.filePath);
+        // Pass the uploaded image URL to parent component for tracking
+        onImageUpload(result.publicUrl);
         
         // Update progress
         setCompletedFiles(prev => prev + 1);
@@ -88,9 +65,8 @@ const ImageUpload = forwardRef<ImageUploadRef, ImageUploadProps>(({ onImageUploa
       }
     }
     
-    // Wait a moment before clearing previews to ensure they're all visible to the user
+    // Reset states after all uploads
     setTimeout(() => {
-      // Reset states after all uploads
       setIsUploading(false);
       setUploadProgress(0);
       
@@ -165,8 +141,4 @@ const ImageUpload = forwardRef<ImageUploadRef, ImageUploadProps>(({ onImageUploa
       )}
     </div>
   );
-});
-
-ImageUpload.displayName = 'ImageUpload';
-
-export default ImageUpload; 
+} 
