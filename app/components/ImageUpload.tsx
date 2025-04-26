@@ -1,20 +1,40 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { uploadProductImage } from '../actions/storage';
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { uploadProductImage, deleteProductImage } from '../actions/storage';
 
 interface ImageUploadProps {
-  onImageUpload: (url: string) => void;
+  onImageUpload: (url: string, filePath: string) => void;
   onError: (error: string) => void;
 }
 
-export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps) {
+export interface ImageUploadRef {
+  cleanup: () => Promise<void>;
+}
+
+const ImageUpload = forwardRef<ImageUploadRef, ImageUploadProps>(({ onImageUpload, onError }, ref) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
   const [completedFiles, setCompletedFiles] = useState(0);
   const [previews, setPreviews] = useState<{ url: string, name: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFilePaths, setUploadedFilePaths] = useState<string[]>([]);
+
+  // Expose cleanup method via ref
+  useImperativeHandle(ref, () => ({
+    async cleanup() {
+      console.log('Cleaning up temporary uploads:', uploadedFilePaths);
+      const deletionPromises = uploadedFilePaths.map(filePath => 
+        deleteProductImage(filePath)
+          .catch(err => console.error(`Failed to delete ${filePath}:`, err))
+      );
+      
+      await Promise.all(deletionPromises);
+      setUploadedFilePaths([]);
+      return;
+    }
+  }));
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -47,13 +67,16 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
           continue;
         }
         
-        if (!result.publicUrl) {
+        if (!result.publicUrl || !result.filePath) {
           onError(`Failed to get public URL for ${file.name}`);
           continue;
         }
         
+        // Track uploaded file path for potential cleanup
+        setUploadedFilePaths(prev => [...prev, result.filePath!]);
+        
         // Add the uploaded image URL
-        onImageUpload(result.publicUrl);
+        onImageUpload(result.publicUrl, result.filePath);
         
         // Update progress
         setCompletedFiles(prev => prev + 1);
@@ -142,4 +165,8 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
       )}
     </div>
   );
-} 
+});
+
+ImageUpload.displayName = 'ImageUpload';
+
+export default ImageUpload; 
