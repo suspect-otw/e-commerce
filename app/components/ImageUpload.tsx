@@ -37,6 +37,11 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
         return;
       }
       
+      if (!result.publicUrl) {
+        onError('Failed to get public URL for the uploaded image');
+        return;
+      }
+      
       onImageUpload(result.publicUrl);
     } catch (error) {
       console.error('Upload error:', error);

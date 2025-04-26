@@ -2,14 +2,24 @@
 
 import { createClient } from "@/utils/supabase/server";
 
-export const uploadProductImage = async (formData: FormData) => {
+interface UploadResult {
+  success?: boolean;
+  error?: string;
+  filePath?: string;
+  publicUrl: string;
+}
+
+export const uploadProductImage = async (formData: FormData): Promise<UploadResult> => {
   const supabase = await createClient();
   
   // Get the file from form data
   const file = formData.get("file") as File;
   
   if (!file) {
-    return { error: "No file provided" };
+    return { 
+      error: "No file provided",
+      publicUrl: ""
+    };
   }
   
   // Generate a unique file name with the original extension
@@ -27,7 +37,10 @@ export const uploadProductImage = async (formData: FormData) => {
   
   if (error) {
     console.error("Error uploading file:", error);
-    return { error: error.message };
+    return { 
+      error: error.message,
+      publicUrl: ""
+    };
   }
   
   // Get the public URL
@@ -35,7 +48,11 @@ export const uploadProductImage = async (formData: FormData) => {
     .from("product-images")
     .getPublicUrl(filePath);
   
-  return { success: true, filePath, publicUrl };
+  return { 
+    success: true, 
+    filePath, 
+    publicUrl 
+  };
 };
 
 export const deleteProductImage = async (filePath: string) => {
