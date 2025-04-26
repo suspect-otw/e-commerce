@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Product } from '../actions/products';
 import ImageUpload from './ImageUpload';
 
@@ -135,39 +135,42 @@ export default function ProductForm({ onSubmit, initialData, formType }: Product
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <label className="block text-sm font-medium">
           Product Images
         </label>
         
-        <div className="flex flex-wrap gap-4 mb-4">
-          {imageUrls.map((url, index) => (
-            <div key={index} className="relative h-32 w-32 border rounded">
-              <img
-                src={url}
-                alt={`Product ${index + 1}`}
-                className="h-full w-full object-cover rounded"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=No+Image';
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveImage(index)}
-                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center"
-                aria-label="Remove image"
-              >
-                ×
-              </button>
+        {imageUrls.length > 0 && (
+          <div className="border rounded-md p-3 bg-muted/20">
+            <h3 className="text-sm font-medium mb-2">
+              {imageUrls.length} {imageUrls.length === 1 ? 'Image' : 'Images'} Attached
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {imageUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <div className="aspect-square relative overflow-hidden rounded-md border bg-muted">
+                    <img
+                      src={url}
+                      alt={`Product ${index + 1}`}
+                      className="object-cover w-full h-full transition-all hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=No+Image';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-          
-          {imageUrls.length === 0 && (
-            <div className="text-sm text-muted-foreground mb-2">
-              No images added yet. Use the uploader below to add images.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
         
         <ImageUpload 
           onImageUpload={handleAddImage}

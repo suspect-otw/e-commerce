@@ -13,6 +13,7 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalFiles, setTotalFiles] = useState(0);
   const [completedFiles, setCompletedFiles] = useState(0);
+  const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,20 +24,20 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
     setTotalFiles(files.length);
     setCompletedFiles(0);
     
+    // Generate previews for all files
+    const newPreviews: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const previewUrl = URL.createObjectURL(file);
+      newPreviews.push(previewUrl);
+    }
+    setPreviews(newPreviews);
+    
     // Process each file
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
       try {
-        // Preview (show only for the first file to avoid cluttering UI)
-        if (i === 0) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            // No need to set preview for multiple files
-          };
-          reader.readAsDataURL(file);
-        }
-        
         // Upload the file
         const formData = new FormData();
         formData.append('file', file);
@@ -70,6 +71,12 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
     setIsUploading(false);
     setUploadProgress(0);
     
+    // Clean up preview URLs
+    setTimeout(() => {
+      newPreviews.forEach(URL.revokeObjectURL);
+      setPreviews([]);
+    }, 3000); // Keep previews visible for 3 seconds after upload completes
+    
     // Reset the input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -77,7 +84,7 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
   };
 
   return (
-    <div className="space-y-2 w-full">
+    <div className="space-y-4 w-full">
       <div className="flex flex-col items-center gap-4 w-full">
         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -113,6 +120,24 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
           </div>
         )}
       </div>
+      
+      {/* Image Previews */}
+      {previews.length > 0 && (
+        <div className="w-full">
+          <p className="text-sm font-medium mb-2">Uploading these images:</p>
+          <div className="flex flex-wrap gap-2">
+            {previews.map((preview, index) => (
+              <div key={index} className="relative h-20 w-20 border rounded">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="h-full w-full object-cover rounded"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

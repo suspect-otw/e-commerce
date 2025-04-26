@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { deleteProductImage } from "./storage";
 
 export type Product = {
   id: string;
@@ -113,6 +114,19 @@ export const updateProduct = async (formData: FormData) => {
 export const deleteProduct = async (id: string) => {
   const supabase = await createClient();
   
+  // First, get the product to get its image URLs
+  const { data: product, error: fetchError } = await supabase
+    .from("products")
+    .select("image_url")
+    .eq("id", id)
+    .single();
+  
+  if (fetchError) {
+    console.error("Error fetching product for deletion:", fetchError);
+    return { error: fetchError.message };
+  }
+
+  // Delete the product
   const { error } = await supabase
     .from("products")
     .delete()
@@ -121,6 +135,25 @@ export const deleteProduct = async (id: string) => {
   if (error) {
     console.error("Error deleting product:", error);
     return { error: error.message };
+  }
+
+  // Delete associated images from storage if they exist
+  if (product?.image_url && product.image_url.length > 0) {
+    for (const imageUrl of product.image_url) {
+      try {
+        // Extract file path from the URL
+        // Assuming URL format is like: https://[bucket-url]/storage/v1/object/public/product-images/[filename]
+        const urlParts = imageUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        
+        if (fileName) {
+          await deleteProductImage(fileName);
+        }
+      } catch (err) {
+        console.error(`Failed to delete image: ${imageUrl}`, err);
+        // Continue with other images even if one fails
+      }
+    }
   }
   
   return { success: true };
