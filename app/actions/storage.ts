@@ -31,7 +31,7 @@ export const uploadProductImage = async (formData: FormData): Promise<UploadResu
   const filePath = `${fileName}`;
   
   // Upload the file to the product-images bucket
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from("product-images")
     .upload(filePath, file, {
       cacheControl: "3600",

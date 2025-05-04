@@ -122,7 +122,7 @@ export default function ProductList({ products, onEdit }: ProductListProps) {
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently delete the 
-                          product "{productToDelete?.name}" and remove the data from the server.
+                          product &quot;{productToDelete?.name}&quot; and remove the data from the server.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
