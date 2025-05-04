@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Product, deleteProduct } from '../actions/products';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,16 +72,19 @@ export default function ProductList({ products, onEdit }: ProductListProps) {
               <td className="p-3 border">
                 {product.image_url && product.image_url.length > 0 ? (
                   <div className="relative h-16 w-16">
-                    <img
+                    <Image
                       src={product.image_url[0]}
                       alt={product.name}
-                      className="h-full w-full object-cover rounded"
+                      className="object-cover rounded"
+                      fill
+                      sizes="64px"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=No+Image';
+                        // @ts-expect-error - TypeScript doesn't know about the src property on the target
+                        e.target.src = 'https://placehold.co/100x100/png?text=No+Image';
                       }}
                     />
                     {product.image_url.length > 1 && (
-                      <span className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-xs px-1 rounded-sm">
+                      <span className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-xs px-1 rounded-sm z-10">
                         +{product.image_url.length - 1}
                       </span>
                     )}

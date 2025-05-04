@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { uploadProductImage } from '../actions/storage';
+import Image from 'next/image';
 
 interface ImageUploadProps {
   onImageUpload: (url: string) => void;
@@ -126,12 +127,14 @@ export default function ImageUpload({ onImageUpload, onError }: ImageUploadProps
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {previews.map((preview, index) => (
               <div key={index} className="relative aspect-square overflow-hidden rounded-md border bg-muted">
-                <img
+                <Image
                   src={preview.url}
                   alt={`Preview ${preview.name}`}
-                  className="h-full w-full object-cover rounded"
+                  fill
+                  className="object-cover rounded"
+                  sizes="(max-width: 640px) 50vw, 20vw"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs py-1 px-2 truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs py-1 px-2 truncate z-10">
                   {preview.name}
                 </div>
               </div>

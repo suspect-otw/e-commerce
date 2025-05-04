@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Product } from '../actions/products';
 import ImageUpload from './ImageUpload';
 import { deleteProductImage } from '../actions/storage';
+import Image from 'next/image';
 
 interface ProductFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -191,19 +192,22 @@ export default function ProductForm({
               {imageUrls.map((url, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-square relative overflow-hidden rounded-md border bg-muted">
-                    <img
+                    <Image
                       src={url}
                       alt={`Product ${index + 1}`}
-                      className="object-cover w-full h-full transition-all hover:scale-105"
+                      className="transition-all hover:scale-105"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/100x100/png?text=No+Image';
+                        // @ts-expect-error - TypeScript doesn't know about the src property on the target
+                        e.target.src = 'https://placehold.co/100x100/png?text=No+Image';
                       }}
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
                       disabled={isDeleting === index}
-                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100 disabled:opacity-50"
+                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100 disabled:opacity-50 z-10"
                       aria-label="Remove image"
                     >
                       {isDeleting === index ? '...' : '×'}
