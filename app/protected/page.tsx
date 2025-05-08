@@ -18,9 +18,9 @@ export default async function ProtectedPage() {
   const products = await getProducts();
 
   return (
-    <div className="flex-1 w-full flex flex-col gap-8 p-4 md:p-8">
+    <div className="flex-1 w-full flex flex-col gap-4 px-2 py-4 sm:p-8 max-w-full overflow-hidden">
       <div className="w-full">
-        <div className="bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center">
+        <div className="bg-accent text-sm p-3 px-4 rounded-md text-foreground flex flex-wrap gap-2 items-center">
           <span className="font-medium">Admin Dashboard</span> - Manage your T-shirt products here
         </div>
       </div>

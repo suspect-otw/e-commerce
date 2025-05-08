@@ -5,6 +5,7 @@ import { Product } from '../actions/products';
 import ImageUpload from './ImageUpload';
 import { deleteProductImage } from '../actions/storage';
 import Image from 'next/image';
+import { Textarea } from "@/components/ui/textarea";
 
 interface ProductFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -22,6 +23,7 @@ export default function ProductForm({
   onRemoveTempImage
 }: ProductFormProps) {
   const [name, setName] = useState(initialData?.name || '');
+  const [description, setDescription] = useState(initialData?.description || '');
   const [size, setSize] = useState(initialData?.size || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
   const [imageUrls, setImageUrls] = useState<string[]>(initialData?.image_url || []);
@@ -33,6 +35,9 @@ export default function ProductForm({
   useEffect(() => {
     if (initialData?.image_url) {
       setImageUrls(initialData.image_url);
+    }
+    if (initialData?.description) {
+      setDescription(initialData.description);
     }
   }, [initialData]);
 
@@ -102,6 +107,7 @@ export default function ProductForm({
       if (formType === 'create') {
         // Reset form for create
         setName('');
+        setDescription('');
         setSize('');
         setPrice('');
         setImageUrls([]);
@@ -115,7 +121,7 @@ export default function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg bg-card">
+    <form onSubmit={handleSubmit} className="space-y-6 p-4 border rounded-lg bg-card">
       <h2 className="text-xl font-bold mb-4">
         {formType === 'create' ? 'Add New Product' : 'Edit Product'}
       </h2>
@@ -130,52 +136,69 @@ export default function ProductForm({
         <input type="hidden" name="id" value={initialData.id} />
       )}
 
-      <div className="space-y-2">
-        <label htmlFor="name" className="block text-sm font-medium">
-          Product Name
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-      </div>
+      {/* Responsive grid for form fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2 col-span-1 sm:col-span-2">
+          <label htmlFor="name" className="block text-sm font-medium">
+            Product Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
 
-      <div className="space-y-2">
-        <label htmlFor="size" className="block text-sm font-medium">
-          Size
-        </label>
-        <input
-          type="text"
-          id="size"
-          name="size"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
-          placeholder="Enter size (e.g. 28, 30, S, M, L)"
-          className="w-full p-2 border rounded"
-          required
-        />
-      </div>
+        <div className="space-y-2 col-span-1 sm:col-span-2">
+          <label htmlFor="description" className="block text-sm font-medium">
+            Description
+          </label>
+          <Textarea
+            id="description"
+            name="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Enter product description"
+            className="w-full min-h-[100px]"
+          />
+        </div>
 
-      <div className="space-y-2">
-        <label htmlFor="price" className="block text-sm font-medium">
-          Price
-        </label>
-        <input
-          type="number"
-          id="price"
-          name="price"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          min="1"
-          max="10000"
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div className="space-y-2">
+          <label htmlFor="size" className="block text-sm font-medium">
+            Size
+          </label>
+          <input
+            type="text"
+            id="size"
+            name="size"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            placeholder="e.g. 28, 30, S, M, L"
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="price" className="block text-sm font-medium">
+            Price
+          </label>
+          <input
+            type="number"
+            id="price"
+            name="price"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            min="1"
+            max="10000"
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -188,7 +211,7 @@ export default function ProductForm({
             <h3 className="text-sm font-medium mb-2">
               {imageUrls.length} {imageUrls.length === 1 ? 'Image' : 'Images'} Attached
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
               {imageUrls.map((url, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-square relative overflow-hidden rounded-md border bg-muted">
@@ -228,7 +251,7 @@ export default function ProductForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
+        className="w-full py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 text-base font-medium"
       >
         {isSubmitting ? 'Submitting...' : formType === 'create' ? 'Add Product' : 'Update Product'}
       </button>

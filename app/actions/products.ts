@@ -6,6 +6,7 @@ import { deleteProductImage } from "./storage";
 export type Product = {
   id: string;
   name: string;
+  description?: string;
   size: string;
   image_url: string[];
   price: number;
@@ -50,6 +51,7 @@ export const createProduct = async (formData: FormData) => {
   const supabase = await createClient();
   
   const name = formData.get("name") as string;
+  const description = formData.get("description") as string;
   const size = formData.get("size") as string;
   const price = parseInt(formData.get("price") as string);
   const imageUrls = formData.getAll("image_url").map(url => url.toString()).filter(url => url.trim() !== "");
@@ -63,6 +65,7 @@ export const createProduct = async (formData: FormData) => {
     .insert([
       {
         name,
+        description,
         size,
         price,
         image_url: imageUrls
@@ -83,6 +86,7 @@ export const updateProduct = async (formData: FormData) => {
   
   const id = formData.get("id") as string;
   const name = formData.get("name") as string;
+  const description = formData.get("description") as string;
   const size = formData.get("size") as string;
   const price = parseInt(formData.get("price") as string);
   const imageUrls = formData.getAll("image_url").map(url => url.toString()).filter(url => url.trim() !== "");
@@ -113,6 +117,7 @@ export const updateProduct = async (formData: FormData) => {
     .from("products")
     .update({
       name,
+      description,
       size,
       price,
       image_url: imageUrls

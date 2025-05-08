@@ -70,13 +70,13 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h1 className="text-2xl font-bold">Products</h1>
         {!isCreating && !editingProduct && (
           <button 
             onClick={() => setIsCreating(true)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 w-full sm:w-auto"
           >
             Add New Product
           </button>
@@ -84,8 +84,8 @@ export default function ProductManager({ initialProducts }: ProductManagerProps)
       </div>
 
       {(isCreating || editingProduct) && (
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
             <h2 className="text-xl font-semibold">
               {isCreating ? 'Add New Product' : 'Edit Product'}
             </h2>
